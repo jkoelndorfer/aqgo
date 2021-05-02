@@ -21,7 +21,8 @@ var CO_CONCENTRATION_PPB = "COConcentrationPPB"
 var TEMPERATURE_C = "TemperatureC"
 var RELATIVE_HUMIDITY = "RelativeHumidity"
 var UPTIME = "Uptime"
-var SENSOR_SERIAL_NUMBER = "SensorSerialNumber"
+var SENSOR_ID = "SensorID"
+var SENSOR_WARMED_UP = "SensorWarmedUp"
 
 type ApplicationArguments struct {
 	PollInterval     int
@@ -61,30 +62,52 @@ func main() {
 }
 
 func submitMetricsToCloudWatch(logger *log.Logger, cw *cloudwatch.Client, ns string, ch chan *iotco1000.AirQualityMeasurement) {
-	loggedAboutUptime := false
+	loggedSensorNotWarmedUp := false
+	loggedSensorActive := false
 	warmUpDuration := time.Hour * 2
 	for {
 		aq := <-ch
+		var params *cloudwatch.PutMetricDataInput
+
 		if aq.Uptime < warmUpDuration {
-			if !loggedAboutUptime {
+			if !loggedSensorNotWarmedUp {
 				// sensor readings made when the IOTCO1000 sensor has recently powered on are not accurate
 				logger.Printf("skipping metric submission because sensor has not been active for warm up duration %s\n", warmUpDuration)
-				loggedAboutUptime = true
+				loggedSensorNotWarmedUp = true
 			}
-			continue
+			params = metricDataInput(false, ns, aq)
+		} else {
+			if !loggedSensorActive {
+				logger.Println("sensor has been active for warm up duration; will submit metrics")
+				loggedSensorActive = true
+			}
+			params = metricDataInput(true, ns, aq)
 		}
-		dimensions := []cwtypes.Dimension{
-			{
-				Name:  &SENSOR_SERIAL_NUMBER,
-				Value: &aq.SensorSerialNumber,
-			},
+
+		_, err := cw.PutMetricData(context.TODO(), params)
+		if err != nil {
+			logger.Printf("error submitting metric data to cloudwatch: %s\n", err)
 		}
+	}
+}
+
+func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMeasurement) *cloudwatch.PutMetricDataInput {
+	var warmedUp float64
+	var params *cloudwatch.PutMetricDataInput
+	storageResolution := int32(1)
+	dimensions := []cwtypes.Dimension{
+		{
+			Name:  &SENSOR_ID,
+			Value: &aq.SensorSerialNumber,
+		},
+	}
+	if sensorWarmedUp {
+		warmedUp = 1.0
 		coPPB := float64(aq.COConcentrationPPB)
 		if coPPB < 0 {
 			coPPB = 0
 		}
-		storageResolution := int32(1)
-		params := &cloudwatch.PutMetricDataInput{
+		params = &cloudwatch.PutMetricDataInput{
 			Namespace: &ns,
 			MetricData: []cwtypes.MetricDatum{
 				{
@@ -115,13 +138,38 @@ func submitMetricsToCloudWatch(logger *log.Logger, cw *cloudwatch.Client, ns str
 					Unit:              cwtypes.StandardUnitSeconds,
 					StorageResolution: &storageResolution,
 				},
+				{
+					MetricName:        &SENSOR_WARMED_UP,
+					Value:             &warmedUp,
+					Dimensions:        dimensions,
+					Unit:              cwtypes.StandardUnitNone,
+					StorageResolution: &storageResolution,
+				},
 			},
 		}
-		_, err := cw.PutMetricData(context.TODO(), params)
-		if err != nil {
-			logger.Printf("error submitting metric data to cloudwatch: %s\n", err)
+	} else {
+		warmedUp = 0.0
+		params = &cloudwatch.PutMetricDataInput{
+			Namespace: &ns,
+			MetricData: []cwtypes.MetricDatum{
+				{
+					MetricName:        &UPTIME,
+					Value:             ffp(aq.Uptime.Seconds()),
+					Dimensions:        dimensions,
+					Unit:              cwtypes.StandardUnitSeconds,
+					StorageResolution: &storageResolution,
+				},
+				{
+					MetricName:        &SENSOR_WARMED_UP,
+					Value:             &warmedUp,
+					Dimensions:        dimensions,
+					Unit:              cwtypes.StandardUnitNone,
+					StorageResolution: &storageResolution,
+				},
+			},
 		}
 	}
+	return params
 }
 
 func newCloudWatchClient() (*cloudwatch.Client, error) {
