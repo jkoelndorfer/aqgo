@@ -26,6 +26,7 @@ type AirQualityMeasurement struct {
 	TemperatureC       int
 	RelativeHumidity   int
 	Uptime             time.Duration
+	MeasurementTime    time.Time
 }
 
 func New(serialDevicePath string) (*IOTCO1000, error) {
@@ -62,6 +63,7 @@ func (co *IOTCO1000) AnalyzeAirQuality() (*AirQualityMeasurement, error) {
 	time.Sleep(1000 * time.Millisecond)
 
 	byteBuffer := make([]byte, 256)
+	measurementTime := time.Now()
 	totalBytesRead := 0
 	for {
 		bytesRead, err := co.SerialPort.Read(byteBuffer)
@@ -113,5 +115,6 @@ func (co *IOTCO1000) AnalyzeAirQuality() (*AirQualityMeasurement, error) {
 		TemperatureC:       int(temperatureCInt),
 		RelativeHumidity:   int(relativeHumidityInt),
 		Uptime:             uptime,
+		MeasurementTime:    measurementTime,
 	}, nil
 }

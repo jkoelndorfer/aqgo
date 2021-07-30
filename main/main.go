@@ -116,6 +116,7 @@ func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMea
 					Dimensions:        dimensions,
 					Unit:              cwtypes.StandardUnitNone,
 					StorageResolution: &storageResolution,
+					Timestamp:         &aq.MeasurementTime,
 				},
 				{
 					MetricName:        &TEMPERATURE_C,
@@ -123,6 +124,7 @@ func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMea
 					Dimensions:        dimensions,
 					Unit:              cwtypes.StandardUnitNone,
 					StorageResolution: &storageResolution,
+					Timestamp:         &aq.MeasurementTime,
 				},
 				{
 					MetricName:        &RELATIVE_HUMIDITY,
@@ -130,6 +132,7 @@ func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMea
 					Dimensions:        dimensions,
 					Unit:              cwtypes.StandardUnitNone,
 					StorageResolution: &storageResolution,
+					Timestamp:         &aq.MeasurementTime,
 				},
 				{
 					MetricName:        &UPTIME,
@@ -137,6 +140,7 @@ func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMea
 					Dimensions:        dimensions,
 					Unit:              cwtypes.StandardUnitSeconds,
 					StorageResolution: &storageResolution,
+					Timestamp:         &aq.MeasurementTime,
 				},
 				{
 					MetricName:        &SENSOR_WARMED_UP,
@@ -144,6 +148,7 @@ func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMea
 					Dimensions:        dimensions,
 					Unit:              cwtypes.StandardUnitNone,
 					StorageResolution: &storageResolution,
+					Timestamp:         &aq.MeasurementTime,
 				},
 			},
 		}
@@ -158,6 +163,7 @@ func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMea
 					Dimensions:        dimensions,
 					Unit:              cwtypes.StandardUnitSeconds,
 					StorageResolution: &storageResolution,
+					Timestamp:         &aq.MeasurementTime,
 				},
 				{
 					MetricName:        &SENSOR_WARMED_UP,
@@ -165,6 +171,7 @@ func metricDataInput(sensorWarmedUp bool, ns string, aq *iotco1000.AirQualityMea
 					Dimensions:        dimensions,
 					Unit:              cwtypes.StandardUnitNone,
 					StorageResolution: &storageResolution,
+					Timestamp:         &aq.MeasurementTime,
 				},
 			},
 		}
