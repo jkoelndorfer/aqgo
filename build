@@ -1,7 +1,35 @@
 #!/bin/bash
 
-script_dir=$(dirname "$0")
+script_invoke_path=$0
+script_name=$(basename "$0")
+script_dir=$(dirname "$(readlink -f "$0")")
 cd "$script_dir"
 
-rm -f aqgo
-GOARCH=arm go build -o aqgo main/main.go
+output_dir='output'
+aqgo_bin="$output_dir/aqgo"
+
+deploy_s3_bucket='310987624463-infra-prod'
+
+function build() {
+    mkdir -p "$output_dir"
+    rm -f "$aqgo_bin"
+    GOARCH=arm go build -o "$aqgo_bin" main/main.go
+}
+
+function deploy() {
+    local aqgo_dirty=$(git describe --always --dirty)
+    if [[ "$agqo_dirty" =~ dirty$ ]]; then
+        echo "${script_invoke_path}: repository is dirty; refusing to deploy"
+        return 1
+    fi
+
+    local aqgo_git_revision=$(git rev-parse HEAD)
+    local deploy_s3_path="s3://${deploy_s3_bucket}/deploy/aqgo/${aqgo_git_revision}/aqgo"
+
+    aws s3 cp "$aqgo_bin" "$deploy_s3_path"
+}
+
+build
+if [[ "$script_name" == 'deploy' ]]; then
+    deploy
+fi
